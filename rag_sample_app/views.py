@@ -189,8 +189,11 @@ class OpenAIResponse(APIView):
             prompt = search_word
 
         # ここでチャット履歴を取得して、messagesリストに追加する
-        chat_history_items = ChatHistory.objects.filter(thread_id=thread).order_by(
-            "timestamp"
+        chat_history_items = (
+            ChatHistory.objects.filter(thread_id=thread)
+            .order_by("-timestamp")
+            .values_list("sender", "message", "timestamp")[:100]
+            .reverse()
         )
         messages = [
             {
