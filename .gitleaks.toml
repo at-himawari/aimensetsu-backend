@@ -1,6 +1,7 @@
 title = "gitleaks config"
 
 [[rules]]
+id = "allow-gitleaks"
 description = "Allow certain secrets using gitleaks:allow"
 regex = '''(?i)(gitleaks:allow)'''
 tags = ["allow"]
