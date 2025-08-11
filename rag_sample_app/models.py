@@ -40,6 +40,12 @@ class ChatHistory(models.Model):
     def __str__(self):
         return f"Thread {self.thread_id.id} - {self.message[:50]}"
 
+    class Meta:
+        ordering = ["timestamp"]
+        indexes = [
+            models.Index(fields=["thread_id", "timestamp"]),
+        ]
+
 
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True)

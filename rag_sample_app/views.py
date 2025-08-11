@@ -189,8 +189,10 @@ class OpenAIResponse(APIView):
             prompt = search_word
 
         # ここでチャット履歴を取得して、messagesリストに追加する
-        chat_history_items = ChatHistory.objects.filter(thread_id=thread).order_by(
-            "timestamp"
+        chat_history_items = (
+            ChatHistory.objects.filter(thread_id=thread)
+            .order_by("timestamp")
+            .values_list("sender", "message", "timestamp")[:100]
         )
         messages = [
             {
@@ -201,11 +203,11 @@ class OpenAIResponse(APIView):
 
         messages.append({"role": "assistant", "content": thread.first_message})
 
-        for item in chat_history_items:
-            if item.sender == "USER":
-                messages.append({"role": "user", "content": item.message})
-            elif item.sender == "AI":
-                messages.append({"role": "assistant", "content": item.message})
+        for sender, message, timestamp in chat_history_items:
+            if sender == "USER":
+                messages.append({"role": "user", "content": message})
+            elif sender == "AI":
+                messages.append({"role": "assistant", "content": message})
 
         # search_wordを履歴に追加
         if search_word != prompt:
