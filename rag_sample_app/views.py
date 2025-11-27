@@ -42,6 +42,13 @@ SENDER_NAME_AI = "AI"
 # OpenAI クライアントの設定（Azure用）
 from openai import AzureOpenAI
 
+# 環境変数が正しく設定されているか確認
+if not aoai_azure_endpoint:
+    raise ValueError(
+        "OPENAI_AZURE_ENDPOINT environment variable is not set. "
+        f"Current ENV: {os.getenv('ENV', 'development')}"
+    )
+
 client = AzureOpenAI(
     api_key=aoai_api_key,
     api_version=aoai_api_version,
