@@ -3,7 +3,7 @@ name: Build, Push and Deploy to Cloud Run
 on:
   push:
     branches:
-      - main  # デプロイをトリガーするブランチを指定
+      - main # デプロイをトリガーするブランチを指定
 
 jobs:
   build-push-deploy:
@@ -16,12 +16,12 @@ jobs:
       - name: Google Cloud 認証を設定
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
+          credentials_json: "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
 
       - name: Google Cloud SDK を設定
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: 'aimensetsu'  # あなたの GCP プロジェクト ID
+          project_id: "aimensetsu" # あなたの GCP プロジェクト ID
 
       - name: Docker の認証情報を設定
         run: |
@@ -35,15 +35,13 @@ jobs:
         run: |
           docker push asia-northeast1-docker.pkg.dev/aimensetsu/rag-sample-app/rag-sample-app:latest
 
-      - name: 環境変数を設定
+      - name: Cloud Run にデプロイ
         run: |
           echo "${{ secrets.DEPLOY_ENVIRONMENTS }}" > env_vars.txt
           ENV_VARS=$(grep -v '^#' env_vars.txt | xargs | sed 's/ /,/g')
           # ENV=productionを追加
           ENV_VARS="ENV=production,${ENV_VARS}"
 
-      - name: Cloud Run にデプロイ
-        run: |
           gcloud run deploy rag-sample-app \
             --image=asia-northeast1-docker.pkg.dev/aimensetsu/rag-sample-app/rag-sample-app:latest \
             --region=asia-northeast1 \
@@ -51,6 +49,4 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars "$ENV_VARS"
 
-      - name: 一時ファイルを削除
-        run: |
           rm env_vars.txt
