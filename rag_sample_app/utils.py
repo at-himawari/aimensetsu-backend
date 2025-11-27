@@ -14,7 +14,8 @@ from jwt.algorithms import RSAAlgorithm
 def load_environment():
     environment = os.getenv("ENV", "development")
     if environment == "production":
-        load_dotenv(".env.production")
+        # 本番環境では環境変数が直接設定されているため、.envファイルは読み込まない
+        pass
     elif environment == "test":
         load_dotenv(".env.test")
     else:

@@ -20,7 +20,8 @@ from dotenv import load_dotenv
 # 開発環境か本番環境かに応じてファイルを指定
 environment = os.getenv("ENV", "development")
 if environment == "production":
-    load_dotenv(".env.production")
+    # 本番環境では環境変数が直接設定されているため、.envファイルは読み込まない
+    pass
 elif environment == "test":
     load_dotenv(".env.test")
 else:
