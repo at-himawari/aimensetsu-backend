@@ -134,105 +134,114 @@ class OpenAIResponse(APIView):
 
     @method_decorator(jwt_required)
     def post(self, request):
-        search_word = request.data.get("search_word")
-        if search_word is None:
-            return Response(
-                {"error": "search_word is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
-        thread_id = request.data.get("thread_id")  # thread_idを取得
-        user = request.user
-        if thread_id:
-            try:
-                thread = Thread.objects.get(creator=user, id=thread_id)
-            except Thread.DoesNotExist:
+        try:
+            search_word = request.data.get("search_word")
+            if search_word is None:
                 return Response(
-                    {"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND
+                    {"error": "search_word is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-        else:
-            thread = Thread.objects.create(creator=user)
-
-        search_url = f"https://{search_service}.search.windows.net/indexes/{index}/docs"
-        headers = {"Content-Type": "application/json", "api-key": api_key}
-        params = {"api-version": "2021-04-30-Preview", "search": search_word}
-        response = requests.get(search_url, headers=headers, params=params)
-
-        if response.status_code == status.HTTP_200_OK:
-            try:
-                results = response.json()
-            except requests.exceptions.JSONDecodeError as e:
-                return Response(
-                    {"error": "JSON decode error: " + str(e)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-        else:
-            return Response(
-                {"error": f"Error {response.status_code}: {response.text}"},
-                status=response.status_code,
-            )
-
-        if results["value"]:
-            max_length = 2000
-            combined_content = "\n".join(
-                [
-                    limit_string_length(
-                        doc.get("content", "No content found"), max_length
+            thread_id = request.data.get("thread_id")  # thread_idを取得
+            user = request.user
+            if thread_id:
+                try:
+                    thread = Thread.objects.get(creator=user, id=thread_id)
+                except Thread.DoesNotExist:
+                    return Response(
+                        {"error": "Thread not found"}, status=status.HTTP_404_NOT_FOUND
                     )
-                    for doc in results["value"][:1]
-                ]
+            else:
+                thread = Thread.objects.create(creator=user)
+
+            search_url = (
+                f"https://{search_service}.search.windows.net/indexes/{index}/docs"
             )
-            prompt = f"以下の<document>に基づいて質問に答えてください（答えられる情報がない場合は、AIベースの回答をしてください）<document> {combined_content}</document>"
-        else:
-            prompt = search_word
+            headers = {"Content-Type": "application/json", "api-key": api_key}
+            params = {"api-version": "2021-04-30-Preview", "search": search_word}
+            response = requests.get(search_url, headers=headers, params=params)
 
-        # ここでチャット履歴を取得して、messagesリストに追加する
-        chat_history_items = (
-            ChatHistory.objects.filter(thread_id=thread)
-            .order_by("timestamp")
-            .values_list("sender", "message", "timestamp")[:100]
-        )
-        messages = [
-            {
-                "role": "system",
-                "content": "あなたは、企業の面接官です。面接を受ける人に対して、適切な質問をしてください。",
-            }
-        ]
+            if response.status_code == status.HTTP_200_OK:
+                try:
+                    results = response.json()
+                except requests.exceptions.JSONDecodeError as e:
+                    return Response(
+                        {"error": "JSON decode error: " + str(e)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+            else:
+                return Response(
+                    {"error": f"Error {response.status_code}: {response.text}"},
+                    status=response.status_code,
+                )
 
-        messages.append({"role": "assistant", "content": thread.first_message})
+            if results["value"]:
+                max_length = 2000
+                combined_content = "\n".join(
+                    [
+                        limit_string_length(
+                            doc.get("content", "No content found"), max_length
+                        )
+                        for doc in results["value"][:1]
+                    ]
+                )
+                prompt = f"以下の<document>に基づいて質問に答えてください（答えられる情報がない場合は、AIベースの回答をしてください）<document> {combined_content}</document>"
+            else:
+                prompt = search_word
 
-        for sender, message, timestamp in chat_history_items:
-            if sender == "USER":
-                messages.append({"role": "user", "content": message})
-            elif sender == "AI":
-                messages.append({"role": "assistant", "content": message})
+            # ここでチャット履歴を取得して、messagesリストに追加する
+            chat_history_items = (
+                ChatHistory.objects.filter(thread_id=thread)
+                .order_by("timestamp")
+                .values_list("sender", "message", "timestamp")[:100]
+            )
+            messages = [
+                {
+                    "role": "system",
+                    "content": "あなたは、企業の面接官です。面接を受ける人に対して、適切な質問をしてください。",
+                }
+            ]
 
-        # search_wordを履歴に追加
-        if search_word != prompt:
-            messages.append({"role": "system", "content": search_word})
+            messages.append({"role": "assistant", "content": thread.first_message})
 
-        messages.append({"role": "user", "content": prompt})
+            for sender, message, timestamp in chat_history_items:
+                if sender == "USER":
+                    messages.append({"role": "user", "content": message})
+                elif sender == "AI":
+                    messages.append({"role": "assistant", "content": message})
 
-        openai_response = openai.chat.completions.create(
-            model=aoai_model, messages=messages
-        )
+            # search_wordを履歴に追加
+            if search_word != prompt:
+                messages.append({"role": "system", "content": search_word})
 
-        response = openai_response.choices[0].message.content
+            messages.append({"role": "user", "content": prompt})
 
-        # チャット履歴を保存
-        user_input = ChatHistory(
-            thread_id=thread,
-            message=search_word,
-            timestamp=datetime.datetime.now(),
-            sender="USER",
-        )
-        user_input.save()
-        ai_input = ChatHistory(
-            thread_id=thread,
-            message=response,
-            timestamp=datetime.datetime.now(),
-            sender="AI",
-        )
-        ai_input.save()
-        return Response({"response": response})
+            openai_response = openai.chat.completions.create(
+                model=aoai_model, messages=messages
+            )
+
+            response = openai_response.choices[0].message.content
+
+            # チャット履歴を保存
+            user_input = ChatHistory(
+                thread_id=thread,
+                message=search_word,
+                timestamp=datetime.datetime.now(),
+                sender="USER",
+            )
+            user_input.save()
+            ai_input = ChatHistory(
+                thread_id=thread,
+                message=response,
+                timestamp=datetime.datetime.now(),
+                sender="AI",
+            )
+            ai_input.save()
+            return Response({"response": response})
+        except Exception as e:
+            return Response(
+                {"error": "Unexpected Error: " + str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ThreadSummary(APIView):
