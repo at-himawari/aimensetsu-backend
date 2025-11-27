@@ -39,6 +39,8 @@ jobs:
         run: |
           echo "${{ secrets.DEPLOY_ENVIRONMENTS }}" > env_vars.txt
           ENV_VARS=$(grep -v '^#' env_vars.txt | xargs | sed 's/ /,/g')
+          # ENV=productionを追加
+          ENV_VARS="ENV=production,${ENV_VARS}"
 
       - name: Cloud Run にデプロイ
         run: |
