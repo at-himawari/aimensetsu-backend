@@ -37,7 +37,7 @@ jobs:
 
       - name: 環境変数を設定
         run: |
-          echo "${{ secrets.DEPLOY_ENVIRONMENT }}" > env_vars.txt
+          echo "${{ secrets.DEPLOY_ENVIRONMENTS }}" > env_vars.txt
           ENV_VARS=$(grep -v '^#' env_vars.txt | xargs | sed 's/ /,/g')
 
       - name: Cloud Run にデプロイ
