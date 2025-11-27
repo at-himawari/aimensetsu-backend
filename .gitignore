@@ -166,7 +166,5 @@ cython_debug/
 # .DS_Store(Mac)
 .DS_Store
 
-rag_sample_app/__pycache__
-rag_sample_app/migrations/__pycache__
-*.pyc
-rag_sample_django/__pycache__
+
+*/__pycache__/*
