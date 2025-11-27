@@ -21,6 +21,8 @@ def load_environment():
     environment = os.getenv("ENV", "development")
     if environment == "production":
         load_dotenv(".env.production")
+    elif environment == "test":
+        load_dotenv(".env.test")
     else:
         load_dotenv(".env.development")
 
@@ -34,12 +36,17 @@ index = os.getenv("INDEX")
 aoai_api_key = os.getenv("OPENAI_API_KEY")
 aoai_model = os.getenv("OPENAI_MODEL")
 aoai_azure_endpoint = os.getenv("OPENAI_AZURE_ENDPOINT")
+aoai_api_version = os.getenv("OPENAI_API_VERSION", "2024-02-01")
 SENDER_NAME_AI = "AI"
 
-# OpenAI APIの設定
-openai.api_type = "azure"
-openai.api_key = aoai_api_key
-openai.azure_endpoint = aoai_azure_endpoint
+# OpenAI クライアントの設定（Azure用）
+from openai import AzureOpenAI
+
+client = AzureOpenAI(
+    api_key=aoai_api_key,
+    api_version=aoai_api_version,
+    azure_endpoint=aoai_azure_endpoint,
+)
 
 
 def limit_string_length(strings, max_length):
@@ -85,7 +92,7 @@ def get_openai_response(message):
         }
     ]
     messages.append({"role": "user", "content": message})
-    openai_response = openai.chat.completions.create(
+    openai_response = client.chat.completions.create(
         model=aoai_model, messages=messages
     )
     return openai_response.choices[0].message.content
@@ -215,7 +222,7 @@ class OpenAIResponse(APIView):
 
             messages.append({"role": "user", "content": prompt})
 
-            openai_response = openai.chat.completions.create(
+            openai_response = client.chat.completions.create(
                 model=aoai_model, messages=messages
             )
 

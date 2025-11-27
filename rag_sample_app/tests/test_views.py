@@ -90,7 +90,7 @@ class OpenAIResponseTest(APITestBase):
         super().setUp()
         self.thread = Thread.objects.create(creator=self.user)
 
-    @patch("rag_sample_app.views.openai.chat.completions.create")
+    @patch("rag_sample_app.views.client.chat.completions.create")
     @patch("requests.get")
     def test_post_openai_response(self, mock_requests, mock_openai):
         """OpenAIのAPI呼び出しとレスポンスが正常に動作することを確認するテスト"""
@@ -127,7 +127,7 @@ class OpenAIResponseTest(APITestBase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data, {"error": "Thread not found"})
 
-    @patch("rag_sample_app.views.openai.chat.completions.create")
+    @patch("rag_sample_app.views.client.chat.completions.create")
     @patch("requests.get")
     def test_post_openai_response_does_not_exist_thread_id(
         self, mock_requests, mock_openai
@@ -180,7 +180,7 @@ class OpenAIResponseTest(APITestBase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn("error", response.data)
 
-    @patch("rag_sample_app.views.openai.chat.completions.create")
+    @patch("rag_sample_app.views.client.chat.completions.create")
     @patch("requests.get")
     def test_post_openai_response_value_field_missing(self, mock_requests, mock_openai):
         """検索サービスのレスポンスにvalueフィールドが存在しない場合に正しく動作するかを確認するテスト"""
@@ -195,7 +195,7 @@ class OpenAIResponseTest(APITestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("response", response.data)
 
-    @patch("rag_sample_app.views.openai.chat.completions.create")
+    @patch("rag_sample_app.views.client.chat.completions.create")
     @patch("requests.get")
     def test_post_exits_chat_history(self, mock_requests, mock_openai):
         """検索サービスのレスポンスにvalueフィールドが存在しない場合に正しく動作するかを確認するテスト"""
@@ -371,7 +371,7 @@ class GenerateAndSaveSummaryTest(TestCase):
 
 class GetOpenAIResponseTest(SimpleTestCase):
 
-    @patch("rag_sample_app.views.openai.chat.completions.create")
+    @patch("rag_sample_app.views.client.chat.completions.create")
     def test_get_openai_response(self, mock_openai_create):
         """OpenAIのAPIレスポンスが正常に取得されることを確認するテスト"""
         # モックのレスポンスを設定
