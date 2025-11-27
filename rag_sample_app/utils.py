@@ -15,6 +15,8 @@ def load_environment():
     environment = os.getenv("ENV", "development")
     if environment == "production":
         load_dotenv(".env.production")
+    elif environment == "test":
+        load_dotenv(".env.test")
     else:
         load_dotenv(".env.development")
 
