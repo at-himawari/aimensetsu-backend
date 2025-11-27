@@ -16,7 +16,7 @@ def load_environment():
     if environment == "production":
         # 本番環境では環境変数が直接設定されているため、.envファイルは読み込まない
         pass
-    if environment == "test":
+    elif environment == "test":
         load_dotenv(".env.test")
     else:
         load_dotenv(".env.development")
